@@ -10,7 +10,7 @@ on:
         default: false
   schedule:
     # 02:00 Asia/Shanghai = 18:00 UTC
-    - cron: '*/10 * * * *'
+    - cron: '0 18 * * *'
 
 jobs:
   attendance:
