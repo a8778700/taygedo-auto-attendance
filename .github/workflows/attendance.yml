@@ -8,9 +8,6 @@ on:
         required: false
         type: boolean
         default: false
-  schedule:
-    # 02:00 Asia/Shanghai = 18:00 UTC
-    - cron: '0 18 * * *'
 
 jobs:
   attendance:
@@ -53,11 +50,3 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_SECRET_UPDATE_TOKEN }}
         run: gh secret set TAYGEDO_ACCOUNTS < updated-accounts.json
-
-  workflow-keepalive:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: liskin/gh-workflow-keepalive@v1
