@@ -1,0 +1,63 @@
+name: 塔吉多每日签到（新）
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: '忽略今日已签到记录，强制重跑'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # 02:00 Asia/Shanghai = 18:00 UTC
+    - cron: '*/10 * * * *'
+
+jobs:
+  attendance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 运行签到
+        env:
+          TAYGEDO_ACCOUNTS: ${{ secrets.TAYGEDO_ACCOUNTS }}
+          TAYGEDO_NOTIFICATION_URLS: ${{ secrets.TAYGEDO_NOTIFICATION_URLS }}
+          TAYGEDO_SERVERCHAN_SENDKEY: ${{ secrets.TAYGEDO_SERVERCHAN_SENDKEY }}
+          TAYGEDO_MAX_RETRIES: ${{ secrets.TAYGEDO_MAX_RETRIES }}
+          TAYGEDO_PASSWORDS: ${{ secrets.TAYGEDO_PASSWORDS }}
+          TAYGEDO_LOGIN_PASSWORD: ${{ secrets.TAYGEDO_LOGIN_PASSWORD }}
+          TAYGEDO_CREDENTIAL_KEY: ${{ secrets.TAYGEDO_CREDENTIAL_KEY }}
+          TAYGEDO_UPDATED_ACCOUNTS_PATH: updated-accounts.json
+          TAYGEDO_FORCE_RUN: ${{ inputs.force_run || 'false' }}
+          TAYGEDO_COIN_TASKS: ${{ vars.TAYGEDO_COIN_TASKS }}
+          TAYGEDO_SHARE_PLATFORM: ${{ vars.TAYGEDO_SHARE_PLATFORM }}
+        run: pnpm action
+
+      - name: 更新账号 Secret
+        if: always() && hashFiles('updated-accounts.json') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_SECRET_UPDATE_TOKEN }}
+        run: gh secret set TAYGEDO_ACCOUNTS < updated-accounts.json
+
+  workflow-keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
